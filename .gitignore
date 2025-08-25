@@ -1,0 +1,42 @@
+### Swift ###
+# Standard Swift
+.build/
+Packages/
+
+# Swift Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+## User-specific things
+*.xcuserdatad
+*.xccheckout
+*.xcscheme
+*.xcworkspace
+
+## Generated files
+build/
+DerivedData/
+
+## Other
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+*.plist
+
+# Pods
+Pods/
+
+# Carthage
+Carthage/Build
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+
+# Other
+*.dSYM/
+
+# macOS
+.DS_Store
