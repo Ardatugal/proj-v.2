@@ -107,7 +107,10 @@ class ViewController: UIViewController {
         }
 
         scanner.onScanComplete = {
-            print("Scan complete!")
+            DispatchQueue.main.async {
+                print("Scan complete!")
+                self.scanButton.isHidden = true
+            }
         }
 
         scanner.startScan()
