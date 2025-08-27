@@ -6,6 +6,7 @@ class ViewController: UIViewController {
     let progressBar = UIProgressView(progressViewStyle: .default)
     let progressLabel = UILabel()
     let groupCountLabel = UILabel()
+    let doneButton = UIButton(type: .system)
 
     let scanner = PhotoScanner()
 
@@ -14,6 +15,7 @@ class ViewController: UIViewController {
 
         view.backgroundColor = .white
         setupUI()
+        setupDoneButton()
 
         checkPhotoLibraryPermission()
     }
@@ -44,6 +46,24 @@ class ViewController: UIViewController {
         progressBar.progress = 0.0
         progressLabel.text = "Scanning photos: 0% (0/0)"
         groupCountLabel.text = ""
+    }
+
+    func setupDoneButton() {
+        doneButton.translatesAutoresizingMaskIntoConstraints = false
+        doneButton.setTitle("Done", for: .normal)
+        doneButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
+        doneButton.isHidden = true
+
+        view.addSubview(doneButton)
+
+        NSLayoutConstraint.activate([
+            doneButton.topAnchor.constraint(equalTo: groupCountLabel.bottomAnchor, constant: 20),
+            doneButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            doneButton.heightAnchor.constraint(equalToConstant: 44),
+            doneButton.widthAnchor.constraint(equalToConstant: 120)
+        ])
+
+        doneButton.addTarget(self, action: #selector(doneButtonTapped), for: .touchUpInside)
     }
 
     func checkPhotoLibraryPermission() {
@@ -78,23 +98,40 @@ class ViewController: UIViewController {
         scanner.onProgressUpdate = { [weak self] processed, total, groupCounts in
             guard let self = self else { return }
             let percent = total == 0 ? 0 : Float(processed) / Float(total)
-            self.progressBar.progress = percent
-            self.progressLabel.text = String(format: "Scanning photos: %.0f%% (%d/%d)", percent * 100, processed, total)
+            DispatchQueue.main.async {
+                self.progressBar.progress = percent
+                self.progressLabel.text = String(format: "Scanning photos: %.0f%% (%d/%d)", percent * 100, processed, total)
 
-            // Update group counts display
-            var groupText = "Group Counts:\n"
-            for group in PhotoGroup.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
-                if let count = groupCounts[group], count > 0 {
-                    groupText += "\(group.rawValue.capitalized): \(count)\n"
+                var groupText = "Group Counts:\n"
+                for group in PhotoGroup.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
+                    if let count = groupCounts[group], count > 0 {
+                        groupText += "\(group.rawValue.capitalized): \(count)\n"
+                    }
                 }
+                self.groupCountLabel.text = groupText
             }
-            self.groupCountLabel.text = groupText
         }
 
-        scanner.onScanComplete = {
-            print("Scan complete!")
+        scanner.onScanComplete = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.progressLabel.text = "Scan complete!"
+                self.doneButton.isHidden = false
+            }
         }
 
         scanner.startScan()
     }
+
+    @objc func doneButtonTapped() {
+        let homeVC = HomeViewController()
+        if let navController = self.navigationController {
+            navController.pushViewController(homeVC, animated: true)
+        } else {
+            let navController = UINavigationController(rootViewController: homeVC)
+            navController.modalPresentationStyle = .fullScreen
+            self.present(navController, animated: true)
+        }
+    }
 }
+
