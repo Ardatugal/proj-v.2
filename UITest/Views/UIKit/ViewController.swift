@@ -6,18 +6,18 @@ class ViewController: UIViewController {
     let progressBar = UIProgressView(progressViewStyle: .default)
     let progressLabel = UILabel()
     let groupCountLabel = UILabel()
-    let doneButton = UIButton(type: .system)
 
     let scanner = PhotoScanner()
+    
+    // Added Start Scan button
+    var startScanButton: UIButton!
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
         view.backgroundColor = .white
         setupUI()
-        setupDoneButton()
-
-        checkPhotoLibraryPermission()
+        // Removed automatic scan trigger here
     }
 
     func setupUI() {
@@ -26,9 +26,15 @@ class ViewController: UIViewController {
         groupCountLabel.translatesAutoresizingMaskIntoConstraints = false
         groupCountLabel.numberOfLines = 0
 
+        startScanButton = UIButton(type: .system)
+        startScanButton.translatesAutoresizingMaskIntoConstraints = false
+        startScanButton.setTitle("Start Scan", for: .normal)
+        startScanButton.addTarget(self, action: #selector(startScanButtonTapped), for: .touchUpInside)
+
         view.addSubview(progressBar)
         view.addSubview(progressLabel)
         view.addSubview(groupCountLabel)
+        view.addSubview(startScanButton)
 
         NSLayoutConstraint.activate([
             progressBar.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
@@ -40,7 +46,10 @@ class ViewController: UIViewController {
 
             groupCountLabel.topAnchor.constraint(equalTo: progressLabel.bottomAnchor, constant: 30),
             groupCountLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            groupCountLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            groupCountLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            startScanButton.topAnchor.constraint(equalTo: groupCountLabel.bottomAnchor, constant: 40),
+            startScanButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
         ])
 
         progressBar.progress = 0.0
@@ -48,22 +57,8 @@ class ViewController: UIViewController {
         groupCountLabel.text = ""
     }
 
-    func setupDoneButton() {
-        doneButton.translatesAutoresizingMaskIntoConstraints = false
-        doneButton.setTitle("Done", for: .normal)
-        doneButton.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
-        doneButton.isHidden = true
-
-        view.addSubview(doneButton)
-
-        NSLayoutConstraint.activate([
-            doneButton.topAnchor.constraint(equalTo: groupCountLabel.bottomAnchor, constant: 20),
-            doneButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            doneButton.heightAnchor.constraint(equalToConstant: 44),
-            doneButton.widthAnchor.constraint(equalToConstant: 120)
-        ])
-
-        doneButton.addTarget(self, action: #selector(doneButtonTapped), for: .touchUpInside)
+    @objc func startScanButtonTapped() {
+        checkPhotoLibraryPermission()
     }
 
     func checkPhotoLibraryPermission() {
@@ -98,40 +93,25 @@ class ViewController: UIViewController {
         scanner.onProgressUpdate = { [weak self] processed, total, groupCounts in
             guard let self = self else { return }
             let percent = total == 0 ? 0 : Float(processed) / Float(total)
-            DispatchQueue.main.async {
-                self.progressBar.progress = percent
-                self.progressLabel.text = String(format: "Scanning photos: %.0f%% (%d/%d)", percent * 100, processed, total)
+            self.progressBar.progress = percent
+            self.progressLabel.text = String(format: "Scanning photos: %.0f%% (%d/%d)", percent * 100, processed, total)
 
-                var groupText = "Group Counts:\n"
-                for group in PhotoGroup.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
-                    if let count = groupCounts[group], count > 0 {
-                        groupText += "\(group.rawValue.capitalized): \(count)\n"
-                    }
+            // Update group counts display
+            var groupText = "Group Counts:\n"
+            for group in PhotoGroup.allCases.sorted(by: { $0.rawValue < $1.rawValue }) {
+                if let count = groupCounts[group], count > 0 {
+                    groupText += "\(group.rawValue.capitalized): \(count)\n"
                 }
-                self.groupCountLabel.text = groupText
             }
+            self.groupCountLabel.text = groupText
         }
 
-        scanner.onScanComplete = { [weak self] in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.progressLabel.text = "Scan complete!"
-                self.doneButton.isHidden = false
-            }
+        scanner.onScanComplete = {
+            print("Scan complete!")
         }
 
         scanner.startScan()
     }
-
-    @objc func doneButtonTapped() {
-        let homeVC = HomeViewController()
-        if let navController = self.navigationController {
-            navController.pushViewController(homeVC, animated: true)
-        } else {
-            let navController = UINavigationController(rootViewController: homeVC)
-            navController.modalPresentationStyle = .fullScreen
-            self.present(navController, animated: true)
-        }
-    }
 }
+
 
